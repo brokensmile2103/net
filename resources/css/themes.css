@@ -1,0 +1,395 @@
+/*
+ * MẪU GIAO DIỆN TRANG KHÁCH (trang đặt đơn + trang theo dõi đơn).
+ * <html data-theme="…"> chọn mẫu; <body class="pf"> là gốc. Các khối trong view có class móc: pf-card (khung nội dung),
+ * pf-btn, pf-section-title, pf-works / pf-work (tác phẩm), pf-name / pf-headline (phần đầu trang).
+ * Màu nhấn luôn lấy từ var(--accent…) do studio chọn — mẫu chỉ quyết định nền, chữ, hình khối và cá tính.
+ *
+ * Viết NGOÀI @layer nên luôn thắng tiện ích Tailwind (rounded-lg, bg-white…) mà không cần !important.
+ * Biến của mẫu đặt trên html[data-theme] (độ ưu tiên cao hơn :root trong app.css).
+ */
+
+/* ============================================================ Nền chung (mẫu "Tối giản" dùng y nguyên) */
+.pf { background: var(--paper); color: var(--ink); font-family: var(--pf-body, var(--font-sans)); }
+.pf .font-display { font-family: var(--pf-display, var(--font-display)); }
+.pf-header { background: var(--surface, #fff); border-bottom: 1px solid var(--line); }
+.pf-muted { color: var(--muted); }
+.pf-footer { color: var(--muted); }
+.pf-footer a:hover { color: var(--ink); }
+
+.pf-section-title { font-family: var(--pf-display, var(--font-display)); font-size: 1.5rem; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 1rem; }
+
+.pf-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.75rem; }
+.pf-btn {
+    display: inline-flex; align-items: center; gap: .5rem; padding: .75rem 1.25rem; border-radius: .6rem;
+    font-weight: 600; line-height: 1.2; border: 1px solid transparent;
+    transition: background-color .15s, border-color .15s, color .15s, transform .15s, box-shadow .15s;
+}
+.pf-btn-primary { background: var(--accent); color: var(--on-accent); }
+/* Nút chính trong form (component x-button) mặc lại cá tính của từng mẫu qua class pf-submit. */
+.pf-btn-primary:hover { background: var(--accent-hover); }
+.pf-btn-ghost { border-color: var(--line-strong); color: var(--ink); }
+.pf-btn-ghost:hover { border-color: var(--ink); }
+
+.pf-works-wrap { margin-bottom: 3rem; }
+.pf-works { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.pf-works-1 { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 768px) { .pf-works-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.pf-work { margin: 0; }
+.pf-work-btn { display: block; width: 100%; cursor: zoom-in; }
+.pf-work-btn img { display: block; width: 100%; height: auto; object-fit: cover; border-radius: .6rem; background: var(--line); }
+.pf-work figcaption { margin-top: .5rem; font-size: .875rem; color: var(--muted); }
+
+/* ============================================================ BÀN VẼ — như đang mở file trong phần mềm thiết kế */
+html[data-theme='artboard'] {
+    --canvas: #2c2c30;
+    --paper: #ffffff;
+    --surface: #ffffff;
+    --pf-display: 'Space Grotesk Variable', var(--font-sans);
+    --pf-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+}
+[data-theme='artboard'] .pf {
+    background-color: var(--canvas);
+    background-image: radial-gradient(#404046 1px, transparent 1px);
+    background-size: 20px 20px;
+    padding-top: 20px;
+}
+@media (min-width: 768px) { [data-theme='artboard'] .pf { padding-left: 20px; } }
+
+/* Thước kẻ: vạch nhỏ mỗi 10px, vạch lớn mỗi 100px. */
+.pf-ruler { position: fixed; z-index: 40; background-color: #1f1f22; pointer-events: none; }
+.pf-ruler-x {
+    top: 0; left: 0; right: 0; height: 20px; border-bottom: 1px solid #111113;
+    background-image: repeating-linear-gradient(90deg, #8b8b93 0 1px, transparent 1px 100px), repeating-linear-gradient(90deg, #55555c 0 1px, transparent 1px 10px);
+    background-size: 100% 12px, 100% 5px; background-position: 20px 100%, 20px 100%; background-repeat: no-repeat;
+}
+.pf-ruler-y {
+    top: 0; bottom: 0; left: 0; width: 20px; border-right: 1px solid #111113; display: none;
+    background-image: repeating-linear-gradient(180deg, #8b8b93 0 1px, transparent 1px 100px), repeating-linear-gradient(180deg, #55555c 0 1px, transparent 1px 10px);
+    background-size: 12px 100%, 5px 100%; background-position: 100% 20px, 100% 20px; background-repeat: no-repeat;
+}
+.pf-ruler-corner { position: fixed; z-index: 41; top: 0; left: 0; width: 20px; height: 20px; background: #1f1f22; border-right: 1px solid #111113; border-bottom: 1px solid #111113; display: none; }
+@media (min-width: 768px) { .pf-ruler-y, .pf-ruler-corner { display: block; } }
+
+[data-theme='artboard'] .pf-header { background: transparent; border-bottom: 0; color: #e7e7ea; }
+[data-theme='artboard'] .pf-header .pf-muted { color: #a0a0a8; }
+[data-theme='artboard'] .pf-main {
+    position: relative; background: #fff; margin-top: 2.75rem; margin-bottom: 2rem;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .5), 0 24px 60px rgba(0, 0, 0, .35);
+}
+@media (min-width: 768px) { [data-theme='artboard'] .pf-main { padding: 3.5rem; } }
+/* Tên khung (frame) phía trên artboard, như Figma/Illustrator. */
+[data-theme='artboard'] .pf-main::before {
+    content: attr(data-frame); position: absolute; left: 0; bottom: 100%; padding-bottom: .4rem;
+    font: 500 .75rem/1 var(--pf-mono); color: #a0a0a8; white-space: nowrap; overflow: hidden; max-width: 100%; text-overflow: ellipsis;
+}
+[data-theme='artboard'] .pf-footer { color: #8e8e96; }
+[data-theme='artboard'] .pf-footer a { color: #d4d4d8; }
+[data-theme='artboard'] .pf-footer a:hover { color: #fff; }
+
+[data-theme='artboard'] .pf-layer { font-family: var(--pf-mono); color: var(--muted); }
+[data-theme='artboard'] .pf-select { position: relative; display: inline-block; padding: .08em .22em .14em; outline: 1.5px solid var(--accent); }
+[data-theme='artboard'] .pf-name { display: block; font-size: clamp(2.5rem, 7vw, 4.75rem); font-weight: 700; line-height: 1; letter-spacing: -0.035em; }
+[data-theme='artboard'] .pf-handle { position: absolute; width: 9px; height: 9px; background: #fff; border: 1.5px solid var(--accent); }
+[data-theme='artboard'] .pf-handle-tl { top: -5px; left: -5px; }
+[data-theme='artboard'] .pf-handle-tr { top: -5px; right: -5px; }
+[data-theme='artboard'] .pf-handle-bl { bottom: -5px; left: -5px; }
+[data-theme='artboard'] .pf-handle-br { bottom: -5px; right: -5px; }
+[data-theme='artboard'] .pf-dimension {
+    position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+    background: var(--accent); color: var(--on-accent); font: 500 .7rem/1 var(--pf-mono); padding: .3rem .45rem; border-radius: 3px; white-space: nowrap;
+}
+[data-theme='artboard'] .pf-headline { font-family: var(--pf-display); font-weight: 500; letter-spacing: -0.01em; }
+[data-theme='artboard'] .pf-section-title { font-weight: 600; letter-spacing: -0.02em; }
+[data-theme='artboard'] .pf-card { border-radius: 4px; border-color: #e4e4e7; }
+[data-theme='artboard'] .pf-btn, [data-theme='artboard'] .pf-submit { border-radius: 6px; }
+[data-theme='artboard'] .pf-work-btn img { border-radius: 2px; outline: 1.5px solid transparent; outline-offset: 3px; transition: outline-color .12s; }
+[data-theme='artboard'] .pf-work-btn:hover img, [data-theme='artboard'] .pf-work-btn:focus-visible img { outline-color: var(--accent); }
+[data-theme='artboard'] .pf-work figcaption { font-family: var(--pf-mono); font-size: .75rem; }
+[data-theme='artboard'] .pf input:not([type='checkbox']):not([type='radio']),
+[data-theme='artboard'] .pf textarea, [data-theme='artboard'] .pf select { border-radius: 4px; }
+
+/* ============================================================ IN RISOGRAPH — hai màu mực in chồng, hạt giấy, lệch khuôn */
+html[data-theme='riso'] {
+    --paper: #f1efe9;
+    --surface: #fbfaf6;
+    --ink: #201e2c;
+    --ink-2: #3b3948;
+    --muted: #625f6d;
+    --line: #201e2c;
+    --line-strong: #201e2c;
+    --pf-display: 'Unbounded Variable', var(--font-sans);
+}
+/* Hạt giấy: nhiễu SVG phủ toàn trang, không chặn bấm chuột. */
+[data-theme='riso'] .pf::before {
+    content: ''; position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: .22; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+[data-theme='riso'] .pf-header { background: transparent; border-bottom: 2px solid var(--ink); }
+[data-theme='riso'] .pf-name {
+    font-size: clamp(2.75rem, 9vw, 6.25rem); font-weight: 800; line-height: .95; letter-spacing: -0.03em;
+    color: var(--riso-face, var(--accent)); text-shadow: .045em .05em 0 var(--riso-shadow, var(--ink-riso)); overflow-wrap: anywhere;
+}
+[data-theme='riso'] .pf-headline {
+    display: inline; font-family: var(--pf-display); font-weight: 600; font-size: clamp(1.15rem, 2.6vw, 1.6rem); line-height: 1.75;
+    background: var(--ink-riso); color: var(--on-riso); padding: .12em .45em; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+[data-theme='riso'] .pf-section-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+[data-theme='riso'] .pf-card { border: 2px solid var(--ink); border-radius: 18px; background: var(--surface); box-shadow: 6px 6px 0 var(--ink-riso); }
+[data-theme='riso'] .pf-price { box-shadow: 6px 6px 0 var(--accent); }
+[data-theme='riso'] .pf-card .divide-y > * + *, [data-theme='riso'] .pf-price > * + * { border-color: var(--ink); }
+[data-theme='riso'] .pf-btn, [data-theme='riso'] .pf-submit { border: 2px solid var(--ink); border-radius: 999px; box-shadow: 3px 3px 0 var(--ink); }
+[data-theme='riso'] .pf-btn:hover, [data-theme='riso'] .pf-submit:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+[data-theme='riso'] .pf-btn-ghost { background: var(--surface); }
+[data-theme='riso'] .pf-duotone { position: relative; overflow: hidden; border: 2px solid var(--ink); border-radius: 18px; background: var(--accent); }
+/* Duotone: ảnh xám nhân (multiply) lên nền màu nhấn → vùng sáng thành màu mực, vùng tối giữ đậm. */
+[data-theme='riso'] .pf-duotone img { display: block; width: 100%; aspect-ratio: 16 / 8; object-fit: cover; filter: grayscale(1) brightness(1.45) contrast(1.05); mix-blend-mode: multiply; }
+[data-theme='riso'] .pf-work-btn { border: 2px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: 5px 5px 0 var(--accent); transition: box-shadow .15s, transform .15s; }
+[data-theme='riso'] .pf-work:nth-child(even) .pf-work-btn { box-shadow: 5px 5px 0 var(--ink-riso); }
+[data-theme='riso'] .pf-work-btn:hover { transform: translate(-2px, -2px); }
+[data-theme='riso'] .pf-work-btn img { border-radius: 0; }
+[data-theme='riso'] .pf-work figcaption { color: var(--ink-2); font-weight: 600; }
+[data-theme='riso'] .pf input:not([type='checkbox']):not([type='radio']),
+[data-theme='riso'] .pf textarea, [data-theme='riso'] .pf select { border-width: 2px; border-color: var(--ink); border-radius: 12px; background: #fff; }
+[data-theme='riso'] .pf-card legend { font-family: var(--pf-display); font-weight: 700; }
+
+/* ============================================================ LƯỚI THUỴ SĨ — chữ cực lớn, lưới 12 cột, khối màu dứt khoát */
+html[data-theme='swiss'] {
+    --paper: #ffffff;
+    --surface: #ffffff;
+    --ink: #000000;
+    --ink-2: #1c1c1c;
+    --muted: #595959;
+    --line: #000000;
+    --line-strong: #000000;
+    --pf-display: 'Archivo Variable', var(--font-sans);
+}
+[data-theme='swiss'] .pf-header { border-bottom: 3px solid #000; }
+.pf-swiss-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+.pf-swiss-block { background: var(--accent); color: var(--on-accent); padding: 1.25rem; display: flex; flex-direction: column; min-height: 11rem; }
+@media (min-width: 768px) {
+    .pf-swiss-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+    .pf-swiss-block { grid-column: 1 / span 4; min-height: 100%; }
+    [data-theme='swiss'] .pf-swiss-grid > .pf-name { grid-column: 5 / span 8; }
+    .pf-swiss-side { grid-column: 1 / span 4; }
+    .pf-swiss-main { grid-column: 5 / span 8; }
+}
+[data-theme='swiss'] .pf-name {
+    align-self: end; margin: 0; font-size: clamp(3rem, 10vw, 8rem); font-weight: 800; font-stretch: 72%;
+    line-height: .86; letter-spacing: -0.045em; overflow-wrap: anywhere;
+}
+.pf-swiss-side, .pf-swiss-main { border-top: 3px solid #000; padding-top: .9rem; }
+.pf-swiss-side { font-weight: 600; }
+[data-theme='swiss'] .pf-headline { font-size: clamp(1.5rem, 3.2vw, 2.4rem); font-weight: 600; font-stretch: 88%; line-height: 1.1; letter-spacing: -0.025em; }
+[data-theme='swiss'] .pf-section-title { font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 800; font-stretch: 75%; letter-spacing: -0.035em; border-top: 3px solid #000; padding-top: .6rem; }
+[data-theme='swiss'] .pf-card { border: 0; border-top: 3px solid #000; border-radius: 0; background: transparent; padding-left: 0; padding-right: 0; }
+[data-theme='swiss'] .pf-card > legend { float: left; width: 100%; padding: 0; margin-bottom: 1rem; font-size: 1.6rem; font-weight: 800; font-stretch: 80%; letter-spacing: -0.02em; }
+[data-theme='swiss'] .pf-card > legend + * { clear: both; }
+[data-theme='swiss'] .pf-card .divide-y > * + *, [data-theme='swiss'] .pf-price > * + * { border-color: #000; }
+[data-theme='swiss'] .pf-btn, [data-theme='swiss'] .pf-submit { border-radius: 0; border-width: 2px; }
+[data-theme='swiss'] .pf-btn-ghost { border-color: #000; }
+[data-theme='swiss'] .pf-btn-ghost:hover { background: #000; color: #fff; }
+[data-theme='swiss'] .pf-works { gap: 1.5rem; }
+[data-theme='swiss'] .pf-work-btn img { border-radius: 0; }
+[data-theme='swiss'] .pf-work figcaption { color: #000; font-weight: 600; border-top: 2px solid #000; padding-top: .4rem; }
+[data-theme='swiss'] .pf input:not([type='checkbox']):not([type='radio']),
+[data-theme='swiss'] .pf textarea, [data-theme='swiss'] .pf select { border-radius: 0; border-width: 2px; border-color: #000; }
+[data-theme='swiss'] .pf .rounded-lg, [data-theme='swiss'] .pf .rounded-md { border-radius: 0; }
+
+/* ============================================================ SỔ PHÁC THẢO — giấy kẻ ô, nét bút dạ, ảnh dán băng keo */
+html[data-theme='sketch'] {
+    --paper: #fcfcfa;
+    --surface: #ffffff;
+    --ink: #2a2d34;
+    --ink-2: #464a54;
+    --muted: #6b7079;
+    --line: #2a2d34;
+    --line-strong: #2a2d34;
+    --grid: #dfe7f0;
+    --pf-display: 'Patrick Hand', var(--font-sans);
+    --wobble: 255px 15px 225px 15px / 15px 225px 15px 255px;
+}
+[data-theme='sketch'] .pf {
+    background-color: var(--paper);
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 26px 26px;
+}
+[data-theme='sketch'] .pf-header { background: transparent; border-bottom: 2px solid var(--ink); }
+[data-theme='sketch'] .pf-name {
+    font-size: clamp(2.6rem, 7vw, 4.5rem); font-weight: 400; line-height: 1.05; padding: 0 .12em;
+    background: linear-gradient(176deg, transparent 58%, color-mix(in srgb, var(--accent) 38%, transparent) 58%, color-mix(in srgb, var(--accent) 38%, transparent) 90%, transparent 90%);
+}
+[data-theme='sketch'] .pf-note {
+    display: inline-block; max-width: 36rem; padding: 1rem 1.3rem; background: var(--accent-soft); color: var(--ink);
+    font-family: var(--pf-display); font-size: 1.55rem; line-height: 1.3; transform: rotate(-1.2deg); box-shadow: 2px 4px 0 rgba(42, 45, 52, .12);
+}
+[data-theme='sketch'] .pf-section-title { font-size: 2.1rem; font-weight: 400; }
+[data-theme='sketch'] .pf-card { border: 2px solid var(--ink); border-radius: var(--wobble); background: var(--surface); }
+[data-theme='sketch'] .pf-card legend { font-family: var(--pf-display); font-size: 1.6rem; font-weight: 400; }
+[data-theme='sketch'] .pf-card .divide-y > * + *, [data-theme='sketch'] .pf-price > * + * { border-style: dashed; border-color: var(--ink); }
+[data-theme='sketch'] .pf-btn, [data-theme='sketch'] .pf-submit { border: 2px solid var(--ink); border-radius: var(--wobble); font-family: var(--pf-display); font-size: 1.2rem; font-weight: 400; }
+[data-theme='sketch'] .pf-btn { padding: .55rem 1.3rem; }
+[data-theme='sketch'] .pf-btn:hover, [data-theme='sketch'] .pf-submit:hover { transform: rotate(-1deg); }
+[data-theme='sketch'] .pf-taped { position: relative; padding: .6rem; background: #fff; box-shadow: 0 3px 10px rgba(0, 0, 0, .12); transform: rotate(.6deg); }
+[data-theme='sketch'] .pf-taped::before,
+[data-theme='sketch'] .pf-work::before {
+    content: ''; position: absolute; z-index: 1; top: -12px; left: 50%; width: 110px; height: 26px;
+    transform: translateX(-50%) rotate(-3deg); background: rgba(246, 224, 132, .78); box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+}
+[data-theme='sketch'] .pf-works { gap: 1.75rem 1.25rem; padding-top: .75rem; }
+[data-theme='sketch'] .pf-work { position: relative; background: #fff; padding: .55rem .55rem .9rem; box-shadow: 0 3px 10px rgba(0, 0, 0, .12); transform: rotate(-1.2deg); }
+[data-theme='sketch'] .pf-work:nth-child(even) { transform: rotate(1deg); }
+[data-theme='sketch'] .pf-work:nth-child(3n) { transform: rotate(-.4deg); }
+[data-theme='sketch'] .pf-work::before { width: 70px; height: 20px; top: -9px; }
+[data-theme='sketch'] .pf-work-btn img { border-radius: 0; }
+[data-theme='sketch'] .pf-work figcaption { font-family: var(--pf-display); font-size: 1.15rem; color: var(--ink); text-align: center; }
+[data-theme='sketch'] .pf input:not([type='checkbox']):not([type='radio']),
+[data-theme='sketch'] .pf textarea, [data-theme='sketch'] .pf select { border-width: 2px; border-color: var(--ink); border-radius: 12px 5px 14px 6px / 6px 14px 5px 12px; }
+
+/* ============================================================ TẠP CHÍ — măng-sét, chữ có chân thật lớn, chú thích in nghiêng */
+html[data-theme='editorial'] {
+    --paper: #f5f0e6;
+    --surface: #fbf8f1;
+    --ink: #1c1a16;
+    --ink-2: #3b3830;
+    --muted: #6b665b;
+    --line: #d8cfbe;
+    --line-strong: #1c1a16;
+    --pf-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+}
+[data-theme='editorial'] .pf-header { background: transparent; border-bottom: 3px double var(--ink); }
+[data-theme='editorial'] .pf-main { counter-reset: ed-section ed-figure; }
+.pf-ed-masthead {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 1rem; align-items: center;
+    padding: .55rem 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink);
+    font-size: .72rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+}
+.pf-ed-masthead > :first-child { text-align: left; }
+.pf-ed-masthead > :last-child { text-align: right; }
+[data-theme='editorial'] .pf-hero { text-align: center; }
+[data-theme='editorial'] .pf-name {
+    margin-top: 1.6rem; font-size: clamp(3rem, 10.5vw, 7.25rem); font-weight: 560; line-height: .92; letter-spacing: -0.035em;
+    font-variation-settings: 'opsz' 144; overflow-wrap: anywhere;
+}
+[data-theme='editorial'] .pf-headline {
+    max-width: 40rem; margin: 1.4rem auto 0; font-family: var(--pf-display); font-style: italic; font-weight: 400;
+    font-size: clamp(1.3rem, 2.8vw, 1.85rem); line-height: 1.3; color: var(--ink-2); font-variation-settings: 'opsz' 48;
+}
+[data-theme='editorial'] .pf-headline::before { content: '“'; }
+[data-theme='editorial'] .pf-headline::after { content: '”'; }
+.pf-ed-byline {
+    display: flex; align-items: center; justify-content: center; gap: .65rem; margin-top: 1.5rem;
+    font-size: .85rem; color: var(--muted);
+}
+.pf-ed-byline .pf-avatar { flex: none; }
+.pf-ed-byline strong { color: var(--ink); font-weight: 600; }
+.pf-ed-cover { margin: 2.5rem 0 0; }
+.pf-ed-cover img { display: block; width: 100%; aspect-ratio: 16 / 8; object-fit: cover; }
+.pf-ed-cover figcaption, [data-theme='editorial'] .pf-work figcaption {
+    margin-top: .55rem; padding-top: .45rem; border-top: 1px solid var(--line); text-align: left;
+    font-family: var(--pf-display); font-style: italic; font-size: .92rem; color: var(--muted);
+}
+.pf-ed-bio { margin-top: 2.25rem; text-align: left; line-height: 1.75; color: var(--ink-2); }
+@media (min-width: 768px) { .pf-ed-bio { column-count: 2; column-gap: 2.5rem; column-rule: 1px solid var(--line); } }
+/* Chữ hoa đầu đoạn (drop cap). */
+.pf-ed-bio::first-letter {
+    float: left; margin: .08em .12em 0 0; font-family: var(--pf-display); font-size: 3.6em; line-height: .8; font-weight: 600;
+    color: var(--accent); font-variation-settings: 'opsz' 144;
+}
+[data-theme='editorial'] .pf-actions { justify-content: center; margin-top: 2.25rem; }
+[data-theme='editorial'] .pf-btn, [data-theme='editorial'] .pf-submit {
+    border-radius: 0; text-transform: uppercase; letter-spacing: .14em; font-size: .78rem; padding: .95rem 1.5rem;
+}
+[data-theme='editorial'] .pf-btn-ghost { border-color: var(--ink); }
+[data-theme='editorial'] .pf-btn-ghost:hover { background: var(--ink); color: var(--paper); }
+/* Tiêu đề mục: số mục nhỏ in hoa phía trên, tên mục chữ có chân. */
+[data-theme='editorial'] .pf-section-title {
+    font-weight: 500; font-size: clamp(1.9rem, 4vw, 2.6rem); letter-spacing: -0.02em; line-height: 1.05;
+    font-variation-settings: 'opsz' 96; padding-top: .9rem; border-top: 1px solid var(--ink); margin-bottom: 1.4rem;
+}
+[data-theme='editorial'] .pf-section-title::before {
+    counter-increment: ed-section; content: 'Mục ' counter(ed-section, decimal-leading-zero);
+    display: block; margin-bottom: .55rem; font: 600 .7rem/1 var(--font-sans); letter-spacing: .18em; text-transform: uppercase; color: var(--accent-ink);
+}
+[data-theme='editorial'] .pf-card { border-radius: 2px; border-color: var(--line); background: var(--surface); }
+[data-theme='editorial'] .pf-card legend, [data-theme='editorial'] .pf-card h2 { font-family: var(--pf-display); font-weight: 600; letter-spacing: -0.01em; }
+[data-theme='editorial'] .pf-card .divide-y > * + *, [data-theme='editorial'] .pf-price > * + * { border-color: var(--line); }
+[data-theme='editorial'] .pf-price { border-left: 0; border-right: 0; border-radius: 0; background: transparent; border-top: 0; }
+[data-theme='editorial'] .pf-price .font-semibold:first-child { font-family: var(--pf-display); font-size: 1.15rem; font-weight: 600; }
+[data-theme='editorial'] .pf-note-box { border-radius: 0; border-left: 3px solid var(--accent); background: var(--surface); color: var(--ink-2); font-style: italic; font-family: var(--pf-display); font-size: 1.05rem; }
+[data-theme='editorial'] .pf-works { gap: 2rem 1.5rem; }
+[data-theme='editorial'] .pf-work-btn img { border-radius: 0; }
+[data-theme='editorial'] .pf-work figcaption::before { counter-increment: ed-figure; content: 'Hình ' counter(ed-figure) '. '; font-style: normal; font-weight: 600; color: var(--ink); }
+[data-theme='editorial'] .pf input:not([type='checkbox']):not([type='radio']),
+[data-theme='editorial'] .pf textarea, [data-theme='editorial'] .pf select { border-radius: 2px; background: #fff; }
+[data-theme='editorial'] .pf-footer { border-top: 3px double var(--ink); padding-top: 1.2rem; }
+
+/* ============================================================ THẺ MÀU — quạt màu Pantone: khối màu + dải nhãn trắng, mã màu, sắc độ */
+html[data-theme='swatch'] {
+    --paper: #e9e9e6;
+    --surface: #ffffff;
+    --ink: #161618;
+    --ink-2: #38383d;
+    --muted: #66666d;
+    --line: #dcdcd8;
+    --line-strong: #b9b9b4;
+    --pf-display: 'Archivo Variable', var(--font-sans);
+    --pf-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+    --chip-shadow: 0 1px 2px rgba(0, 0, 0, .08), 0 10px 28px rgba(0, 0, 0, .08);
+}
+[data-theme='swatch'] .pf-header { background: transparent; border-bottom: 0; }
+.pf-sw-chip { margin: 0; background: #fff; border-radius: 4px; box-shadow: var(--chip-shadow); overflow: hidden; }
+.pf-sw-hero { display: grid; gap: 2rem; align-items: start; }
+@media (min-width: 768px) {
+    .pf-sw-hero { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 2.5rem; }
+    .pf-sw-main { transform: rotate(-1.5deg); }
+}
+.pf-sw-color {
+    position: relative; display: flex; align-items: flex-start; justify-content: space-between;
+    aspect-ratio: 4 / 3; padding: 1.1rem; background: var(--accent); color: var(--on-accent);
+}
+.pf-sw-color .pf-avatar { box-shadow: 0 0 0 3px color-mix(in srgb, var(--on-accent) 85%, transparent); }
+.pf-sw-code { font: 600 .8rem/1 var(--pf-mono); letter-spacing: .04em; opacity: .85; }
+.pf-sw-label { padding: 1rem 1.15rem 1.15rem; }
+[data-theme='swatch'] .pf-name {
+    font-size: clamp(2rem, 5.5vw, 3.4rem); font-weight: 800; font-stretch: 85%; line-height: .98; letter-spacing: -0.03em; overflow-wrap: anywhere;
+}
+.pf-sw-meta { margin-top: .45rem; font: 600 .78rem/1.3 var(--pf-mono); letter-spacing: .03em; color: var(--ink-2); text-transform: uppercase; }
+[data-theme='swatch'] .pf-headline { font-family: var(--pf-display); font-size: clamp(1.4rem, 2.8vw, 2rem); font-weight: 700; font-stretch: 90%; line-height: 1.12; letter-spacing: -0.02em; }
+/* Dải sắc độ của màu nhấn: 100 → 20%. */
+.pf-sw-tints { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin-top: 1.5rem; padding: 4px; background: #fff; border-radius: 4px; box-shadow: var(--chip-shadow); }
+.pf-sw-tints li { aspect-ratio: 1; display: flex; align-items: flex-end; padding: .3rem; border-radius: 2px; background: color-mix(in srgb, var(--accent) var(--t), #fff); }
+.pf-sw-tints span { font: 600 .62rem/1 var(--pf-mono); color: var(--ink); background: rgba(255, 255, 255, .85); padding: .15rem .25rem; border-radius: 2px; }
+.pf-sw-cover { margin-top: 3rem; }
+.pf-sw-cover .pf-sw-label { display: flex; justify-content: space-between; gap: 1rem; font-size: .9rem; }
+.pf-sw-cover .pf-sw-label span { font-family: var(--pf-mono); font-size: .78rem; color: var(--muted); text-transform: uppercase; }
+[data-theme='swatch'] .pf-section-title { display: flex; align-items: center; gap: .6rem; font-weight: 800; font-stretch: 85%; letter-spacing: -0.025em; }
+[data-theme='swatch'] .pf-section-title::before { content: ''; flex: none; width: .8em; height: .8em; border-radius: 2px; background: var(--accent); }
+[data-theme='swatch'] .pf-card { border: 0; border-top: 6px solid var(--accent); border-radius: 4px; box-shadow: var(--chip-shadow); }
+[data-theme='swatch'] .pf-card legend { font-family: var(--pf-display); font-weight: 800; font-stretch: 88%; }
+/* Legend của fieldset nằm đè lên viền trên → đẩy xuống trong thẻ cho gọn. */
+[data-theme='swatch'] fieldset.pf-card > legend { float: left; width: 100%; padding: 0; margin-bottom: .9rem; }
+[data-theme='swatch'] fieldset.pf-card > legend + * { clear: both; }
+[data-theme='swatch'] .pf-note-box { border-radius: 4px; border-left: 6px solid var(--accent); }
+[data-theme='swatch'] .pf-btn, [data-theme='swatch'] .pf-submit { border-radius: 3px; }
+[data-theme='swatch'] .pf-btn-ghost { background: #fff; border-color: transparent; box-shadow: var(--chip-shadow); }
+[data-theme='swatch'] .pf-btn-ghost:hover { border-color: var(--ink); }
+[data-theme='swatch'] .pf-main { counter-reset: sw-chip; }
+[data-theme='swatch'] .pf-works { gap: 1.5rem; }
+[data-theme='swatch'] .pf-work { counter-increment: sw-chip; background: #fff; border-radius: 4px; box-shadow: var(--chip-shadow); overflow: hidden; transition: transform .15s; }
+[data-theme='swatch'] .pf-work:hover { transform: translateY(-3px); }
+[data-theme='swatch'] .pf-work-btn img { border-radius: 0; }
+/* Nhãn thẻ: số thứ tự kiểu mã màu + chú thích (không có chú thích vẫn hiện số). */
+[data-theme='swatch'] .pf-work::after {
+    content: 'NÉT ' counter(sw-chip, decimal-leading-zero); display: block; padding: .7rem .85rem .2rem;
+    font: 700 .78rem/1 var(--pf-mono); letter-spacing: .03em; color: var(--ink);
+}
+[data-theme='swatch'] .pf-work figcaption { order: 2; margin: 0; padding: 0 .85rem .8rem; font-size: .85rem; color: var(--ink-2); }
+[data-theme='swatch'] .pf-work { display: flex; flex-direction: column; }
+[data-theme='swatch'] .pf-work::after { order: 1; }
+[data-theme='swatch'] .pf-work:not(:has(figcaption))::after { padding-bottom: .8rem; }
+[data-theme='swatch'] .pf input:not([type='checkbox']):not([type='radio']),
+[data-theme='swatch'] .pf textarea, [data-theme='swatch'] .pf select { border-radius: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .pf-btn:hover, .pf-submit:hover, .pf-work-btn:hover, .pf-work:hover { transform: none !important; }
+}
