@@ -101,7 +101,7 @@
                             <tr>
                                 <td class="py-2 pr-2">
                                     <span class="flex items-center gap-2"><i class="{{ $s['icon'] }} w-4 text-center text-[var(--muted)]" aria-hidden="true"></i>{{ $s['label'] }}</span>
-                                    <span class="block h-1 rounded-full bg-stone-100 mt-1.5" aria-hidden="true"><span class="block h-full rounded-full bg-[var(--accent)]" style="width: {{ round($s['visitors'] / $srcMax * 100) }}%"></span></span>
+                                    <span class="block h-1 rounded-full bg-stone-100 mt-1.5 overflow-hidden" aria-hidden="true"><span class="block h-full rounded-full bg-[var(--accent)]" style="width: {{ round($s['visitors'] / $srcMax * 100) }}%"></span></span>
                                 </td>
                                 <td class="py-2 text-right tnum">{{ $s['visitors'] }}</td>
                                 <td class="py-2 text-right tnum">{{ $s['orders'] }}</td>
@@ -120,12 +120,13 @@
             {{-- Phễu --}}
             <section class="rounded-lg border border-[var(--line)] bg-white p-5" aria-labelledby="h-funnel">
                 <h2 id="h-funnel" class="font-display text-lg font-bold tracking-tight">Từ người xem tới bàn giao</h2>
-                @php $top = max(1, $r['funnel'][0]['value']); @endphp
+                {{-- Mốc 100% = bước lớn nhất (đơn cũ có từ trước khi bật thống kê có thể nhiều hơn số người xem). --}}
+                @php $top = max(1, ...array_column($r['funnel'], 'value')); @endphp
                 <ol class="mt-3 space-y-2.5">
                     @foreach($r['funnel'] as $i => $f)
                         <li>
                             <div class="flex justify-between text-sm"><span>{{ $f['label'] }}</span><span class="tnum font-semibold">{{ $f['value'] }}</span></div>
-                            <div class="h-2 rounded-full bg-stone-100 mt-1" aria-hidden="true"><div class="h-full rounded-full {{ $i === 0 ? 'bg-[var(--accent)]' : 'bg-[var(--ink)]' }}" style="width: {{ $f['value'] > 0 ? max(2, round($f['value'] / $top * 100)) : 0 }}%"></div></div>
+                            <div class="h-2 rounded-full bg-stone-100 mt-1 overflow-hidden" aria-hidden="true"><div class="h-full rounded-full {{ $i === 0 ? 'bg-[var(--accent)]' : 'bg-[var(--ink)]' }}" style="width: {{ $f['value'] > 0 ? min(100, max(2, round($f['value'] / $top * 100))) : 0 }}%"></div></div>
                         </li>
                     @endforeach
                 </ol>
@@ -138,7 +139,7 @@
                     @foreach($r['devices'] as $d)
                         <li class="flex items-center gap-3">
                             <span class="w-28 shrink-0">{{ $d['label'] }}</span>
-                            <span class="flex-1 h-2 rounded-full bg-stone-100" aria-hidden="true"><span class="block h-full rounded-full bg-[var(--accent)]" style="width: {{ $d['share'] }}%"></span></span>
+                            <span class="flex-1 h-2 rounded-full bg-stone-100 overflow-hidden" aria-hidden="true"><span class="block h-full rounded-full bg-[var(--accent)]" style="width: {{ $d['share'] }}%"></span></span>
                             <span class="w-10 text-right tnum">{{ $d['share'] }}%</span>
                         </li>
                     @endforeach
