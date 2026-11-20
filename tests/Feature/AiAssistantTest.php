@@ -23,10 +23,10 @@ class AiAssistantTest extends NetTestCase
         Http::fake($stubs);
     }
 
-    private function aiStudio(string $slug = 'ai-studio', array $attrs = []): Studio
+    private function aiStudio(string $slug = 'ai-studio', array $attrs = [], ?string $key = null): Studio
     {
         $studio = $this->makeStudio($slug, $attrs);
-        $studio->forceFill(['gemini_api_key' => self::KEY])->save();
+        $studio->forceFill(['gemini_api_key' => $key ?? self::KEY])->save();
 
         return $studio->fresh();
     }
@@ -232,12 +232,13 @@ class AiAssistantTest extends NetTestCase
         $this->post(route('orders.ai-draft'), ['ai_text' => 'anh Tuấn fb tuan.coffee làm menu A3 800k'])
             ->assertSessionHasInput('client_id', $client->id)
             ->assertSessionMissing('errors');
+        // Dữ liệu điền sẵn chỉ sống tới request kế tiếp (flash) → lấy ra trước khi mở form.
+        $input = session()->getOldInput();
         $this->get(route('orders.create'))->assertSee('Anh Tuấn (trùng Facebook)');
 
         // Freelancer bấm "Tạo đơn" với dữ liệu đã điền sẵn → giá chốt thành báo giá.
-        $input = session()->getOldInput();
         unset($input['ai_text']);
-        $this->post(route('orders.store'), $input)->assertRedirect();
+        $this->post(route('orders.store'), $input)->assertSessionHasNoErrors()->assertRedirect();
         $order = Order::latest('id')->firstOrFail();
         $this->assertSame($client->id, $order->client_id);
         $this->assertEquals(800000, (float) $order->total_amount);
@@ -314,14 +315,14 @@ class AiAssistantTest extends NetTestCase
         $this->assertStringContainsString('hết lượt', session('errors')->first('ai_text'));
 
         // Hết lượt PHÚT chỉ tạm dừng ngắn, không đánh dấu hết lượt cả ngày.
-        $studio2 = $this->aiStudio('het-phut');
+        $studio2 = $this->aiStudio('het-phut', [], 'AIzaSyOtherKey_phut_000000000000');
         $this->fake(['*:generateContent' => Http::response(self::quotaError('GenerateRequestsPerMinutePerProjectPerModel-FreeTier'), 429)]);
         $this->actingAs($studio2->owner)->post(route('orders.ai-draft'), ['ai_text' => 'poster sự kiện âm nhạc'])->assertSessionHasErrors('ai_text');
         $this->assertStringContainsString('1 phút', session('errors')->first('ai_text'));
         $this->assertFalse(collect(app(Gemini::class)->usage($studio2))->contains('exhausted', true));
 
         // Key bị thu hồi → dừng ngay, không thử model khác.
-        $studio3 = $this->aiStudio('key-hong');
+        $studio3 = $this->aiStudio('key-hong', [], 'AIzaSyOtherKey_hong_000000000000');
         $this->fake(['*:generateContent' => Http::response(['error' => ['code' => 403, 'status' => 'PERMISSION_DENIED', 'message' => 'Permission denied']], 403)]);
         $this->actingAs($studio3->owner)->post(route('orders.ai-draft'), ['ai_text' => 'poster sự kiện âm nhạc'])->assertSessionHasErrors('ai_text');
         $this->assertStringContainsString('không hợp lệ', session('errors')->first('ai_text'));

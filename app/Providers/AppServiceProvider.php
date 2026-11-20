@@ -26,6 +26,9 @@ class AppServiceProvider extends ServiceProvider
             TrustProxies::at($proxies === '*' ? '*' : array_values(array_filter(array_map('trim', explode(',', $proxies)))));
         }
 
+        // Máy chủ gửi thư dùng chung của Nét (Super Admin cấu hình Resend ở /sieu-quan-tri/cai-dat) — ghi đè .env nếu có.
+        app(\App\Services\Mail\PlatformMail::class)->apply();
+
         // Giới hạn tần suất cho trang công khai — mỗi loại 1 khoá riêng (không dùng chung bộ đếm theo IP).
         RateLimiter::for('order-form', fn (Request $r) => Limit::perHour(20)->by('order-form|'.$r->ip()));
         RateLimiter::for('track-view', fn (Request $r) => Limit::perMinute(120)->by('track-view|'.$r->ip()));

@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\Studio;
+use App\Services\Analytics\PageAnalytics;
 use App\Services\ClientDirectory;
 use App\Services\FormGuard;
 use App\Services\OrderService;
 use App\Services\ShareImage;
+use App\Services\StudioIcon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -24,6 +26,7 @@ class OrderFormController extends Controller
     public function show(Request $request, string $slug): Response
     {
         $studio = $this->findStudio($slug);
+        app(PageAnalytics::class)->record($request, $studio);
 
         // Chủ studio bấm "Xem thử" ở Cài đặt: xem trang bằng mẫu khác mà chưa cần lưu. Khách không dùng được.
         $preview = (string) $request->query('xem-thu');
@@ -93,16 +96,19 @@ class OrderFormController extends Controller
         $links = collect($data['links'] ?? [])->filter()->map(fn ($url) => ['url' => $url])->values()->all();
 
         $order = $orders->create($studio, $client, $data, 'form', $service, $links, 'new');
-        if ($brief['answers']) {
-            $order->forceFill(['brief_answers' => $brief['answers']])->save();
-        }
+        // Nguồn khách đến (Thống kê) + câu trả lời mẫu brief.
+        $order->forceFill(array_filter([
+            'brief_answers' => $brief['answers'] ?: null,
+            'ref_source' => PageAnalytics::sessionSource($request, $studio) ?? 'direct',
+        ]))->save();
 
         // Ghi lại (chỉ freelancer thấy) khi khách xưng tên khác với tên đã lưu — để biết đơn được ghép vào ai và vì sao.
         if ($match && mb_strtolower(trim($data['name'])) !== mb_strtolower(trim((string) $client->name))) {
             $orders->log($order, 'note', 'Người đặt ghi tên “'.$data['name'].'” — Nét nhận ra là khách “'.$client->name.'” qua '.ClientDirectory::matchLabel($match['by']).'.', 'system', false);
         }
 
-        return redirect()->route('public.track', $order->tracking_token)->with('placed', true);
+        return redirect()->route('public.track', $order->tracking_token)->with('placed', true)
+            ->with('ga_lead', ['form' => 'order', 'service' => $service?->name, 'value' => $service?->price ? (float) $service->price : null]);
     }
 
     /**
@@ -121,6 +127,23 @@ class OrderFormController extends Controller
         return response()->file(Storage::disk('public')->path($path), [
             'Content-Type' => 'image/jpeg',
             'Cache-Control' => 'public, max-age=604800',
+        ]);
+    }
+
+    /** Favicon trang khách = ảnh đại diện studio (App\Services\StudioIcon). Không vẽ được thì dùng icon của Nét. */
+    public function icon(StudioIcon $icons, string $slug, int $size): BinaryFileResponse|RedirectResponse
+    {
+        $studio = $this->findStudio($slug);
+        abort_unless(in_array($size, StudioIcon::SIZES, true), 404);
+        $path = $icons->path($studio, $size);
+
+        if (! $path) {
+            return redirect()->to(asset($size === 180 ? 'apple-touch-icon.png' : 'icon-192.png'));
+        }
+
+        return response()->file(Storage::disk('public')->path($path), [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'public, max-age=2592000',
         ]);
     }
 

@@ -93,6 +93,60 @@ return [
         ],
     ],
 
+    /*
+     * Email gửi khách của từng studio (Cài đặt → Email gửi khách). Mọi email đi qua máy chủ gửi thư của Nét
+     * (Super Admin cấu hình Resend 1 lần ở /sieu-quan-tri/cai-dat — Resend bắt buộc tên miền đã xác thực), người gửi
+     * hiển thị là tên studio, trả lời thư về email của studio. Mỗi studio có hạn mức, nhật ký và chế độ thử riêng.
+     */
+    'mail' => [
+        'studio_daily' => (int) env('NET_MAIL_STUDIO_DAILY', 50),    // mặc định số email / studio / ngày (Super Admin đổi được)
+        'platform_daily' => (int) env('NET_MAIL_PLATFORM_DAILY', 0), // trần cả hệ thống / ngày (0 = không giới hạn; Resend miễn phí: 100)
+        'auto_run' => env('NET_OUTBOX_AUTO', true),                  // gửi hàng chờ kèm lượt truy cập web (không cần cron)
+        'batch' => 15,                                               // số email tối đa mỗi lượt xử lý hàng chờ
+        'keep_days' => 180,                                          // giữ nhật ký email bao nhiêu ngày
+    ],
+
+    /*
+     * Email báo tiến độ theo từng giai đoạn (mặc định TẮT — chủ studio bật ở Cài đặt → Email gửi khách).
+     * Gửi sau `delay_minutes` phút kể từ khi đơn chuyển giai đoạn: kéo nhầm thẻ rồi "Hoàn tác" thì email chưa đi.
+     * "new" chỉ gửi cho đơn khách tự đặt qua trang đặt đơn (xác nhận đã nhận yêu cầu), gửi ngay.
+     */
+    'stage_emails' => [
+        'delay_minutes' => 3,
+        'stages' => [
+            'new' => ['label' => 'Đã nhận yêu cầu', 'hint' => 'Ngay khi khách gửi đơn qua trang đặt đơn', 'on' => true],
+            'quoted' => ['label' => 'Gửi báo giá', 'hint' => 'Khi bạn bấm “Gửi báo giá”', 'on' => true],
+            'in_progress' => ['label' => 'Bắt đầu thiết kế', 'hint' => 'Khi đơn chuyển sang “Đang làm”', 'on' => true],
+            'review' => ['label' => 'Có phương án mới', 'hint' => 'Khi bạn gửi vòng phương án cho khách', 'on' => true],
+            'revising' => ['label' => 'Đang sửa theo góp ý', 'hint' => 'Khi khách yêu cầu sửa (hoặc bạn chuyển sang “Đang sửa”)', 'on' => false],
+            'approved' => ['label' => 'Đã duyệt thiết kế', 'hint' => 'Khi khách duyệt phương án', 'on' => false],
+            'delivered' => ['label' => 'Bàn giao file', 'hint' => 'Khi bạn bàn giao file gốc', 'on' => true],
+            'cancelled' => ['label' => 'Huỷ đơn', 'hint' => 'Khi đơn bị huỷ', 'on' => false],
+        ],
+    ],
+
+    // Thống kê trang đặt đơn (mục Thống kê). Không dùng cookie: mỗi người xem tính 1 lần / ngày theo dấu vân tay đổi hằng ngày.
+    'analytics' => [
+        'ranges' => [7, 30, 90],
+        'keep_days' => 400,
+        'sources' => [
+            'facebook' => ['label' => 'Facebook / Messenger', 'icon' => 'fa-brands fa-facebook'],
+            'zalo' => ['label' => 'Zalo', 'icon' => 'fa-solid fa-comment-dots'],
+            'instagram' => ['label' => 'Instagram', 'icon' => 'fa-brands fa-instagram'],
+            'tiktok' => ['label' => 'TikTok', 'icon' => 'fa-brands fa-tiktok'],
+            'threads' => ['label' => 'Threads', 'icon' => 'fa-brands fa-threads'],
+            'x' => ['label' => 'X (Twitter)', 'icon' => 'fa-brands fa-x-twitter'],
+            'google' => ['label' => 'Google / tìm kiếm', 'icon' => 'fa-brands fa-google'],
+            'behance' => ['label' => 'Behance / Dribbble', 'icon' => 'fa-brands fa-behance'],
+            'pinterest' => ['label' => 'Pinterest', 'icon' => 'fa-brands fa-pinterest'],
+            'linkedin' => ['label' => 'LinkedIn', 'icon' => 'fa-brands fa-linkedin'],
+            'email' => ['label' => 'Email', 'icon' => 'fa-solid fa-envelope'],
+            'other' => ['label' => 'Website khác', 'icon' => 'fa-solid fa-globe'],
+            'direct' => ['label' => 'Mở trực tiếp / không rõ', 'icon' => 'fa-solid fa-link'],
+        ],
+        'devices' => ['mobile' => 'Điện thoại', 'tablet' => 'Máy tính bảng', 'desktop' => 'Máy tính'],
+    ],
+
     // Hẹn gọi tư vấn trên trang đặt đơn (Cài đặt → Hẹn gọi tư vấn, mặc định TẮT).
     'consult' => [
         'durations' => [15, 20, 30, 45, 60],

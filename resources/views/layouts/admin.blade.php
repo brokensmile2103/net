@@ -58,6 +58,9 @@
                     @if(session('status'))
                         <div class="mb-5 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800" role="status">{{ session('status') }}</div>
                     @endif
+                    @if(session('warning'))
+                        <div class="mb-5 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900" role="alert">{{ session('warning') }}</div>
+                    @endif
                     <x-errors class="mb-5" />
                     @yield('content')
                 </div>

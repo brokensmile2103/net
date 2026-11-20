@@ -7,6 +7,7 @@
 @section('no_header', '1')
 @section('main_class', 'max-w-4xl')
 @section('frame', 'dat-thiet-ke')
+@section('ga_page', 'order')
 @section('content')
 @php
     $hints = $services->mapWithKeys(fn ($s) => [$s->id => $s->brief_hint])->filter();

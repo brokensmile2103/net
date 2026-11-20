@@ -36,6 +36,7 @@ class Studio extends Model
             'board_prefs' => 'array',
             'reminder_prefs' => 'array',
             'consult_prefs' => 'array',
+            'email_prefs' => 'array',
         ];
     }
 
@@ -261,6 +262,67 @@ class Studio extends Model
             'channels' => $channels ?: ['zalo'],
             'note' => mb_substr(trim((string) ($raw['note'] ?? '')), 0, 500),
         ];
+    }
+
+    /**
+     * Email gửi khách (mặc định: gửi bằng tên studio, trả lời về email studio, chế độ thử TẮT, email theo giai đoạn TẮT).
+     * `limit` / `blocked` chỉ Super Admin đặt (không có trong form của studio).
+     *
+     * @return array{sender_name: string, reply_to: ?string, sandbox: bool, stages_on: bool, stages: array<string, array{on: bool, note: string}>, signature: string, limit: ?int, blocked: bool}
+     */
+    public function emailPrefs(): array
+    {
+        $raw = is_array($this->email_prefs) ? $this->email_prefs : [];
+        $stages = [];
+        foreach (config('net.stage_emails.stages') as $k => $def) {
+            $r = (array) ($raw['stages'][$k] ?? []);
+            $stages[$k] = ['on' => (bool) ($r['on'] ?? $def['on']), 'note' => mb_substr(trim((string) ($r['note'] ?? '')), 0, 500)];
+        }
+        $reply = trim((string) ($raw['reply_to'] ?? ''));
+        $limit = isset($raw['limit']) && $raw['limit'] !== '' && $raw['limit'] !== null ? max(0, (int) $raw['limit']) : null;
+
+        return [
+            'sender_name' => mb_substr(trim((string) ($raw['sender_name'] ?? '')), 0, 80) ?: (string) $this->name,
+            'reply_to' => filter_var($reply, FILTER_VALIDATE_EMAIL) ? $reply : (filter_var((string) $this->email, FILTER_VALIDATE_EMAIL) ? (string) $this->email : null),
+            'sandbox' => (bool) ($raw['sandbox'] ?? false),
+            'stages_on' => (bool) ($raw['stages_on'] ?? false),
+            'stages' => $stages,
+            'signature' => mb_substr(trim((string) ($raw['signature'] ?? '')), 0, 300),
+            'limit' => $limit,
+            'blocked' => (bool) ($raw['blocked'] ?? false),
+        ];
+    }
+
+    /** Ghi đè 1 phần email_prefs (giữ nguyên các khoá khác). */
+    public function mergeEmailPrefs(array $values): void
+    {
+        $this->forceFill(['email_prefs' => array_merge(is_array($this->email_prefs) ? $this->email_prefs : [], $values)])->save();
+    }
+
+    public function emailLogs()
+    {
+        return $this->hasMany(EmailLog::class);
+    }
+
+    public function pageVisits()
+    {
+        return $this->hasMany(PageVisit::class);
+    }
+
+    /** Mã đo lường Google Analytics 4 hợp lệ (G-XXXXXXX) hoặc null. Chỉ lưu mã — đoạn script do Nét tự sinh. */
+    public function gaId(): ?string
+    {
+        $id = strtoupper(trim((string) $this->ga_measurement_id));
+
+        return preg_match(self::GA_PATTERN, $id) ? $id : null;
+    }
+
+    public const GA_PATTERN = '/^G-[A-Z0-9]{4,15}$/';
+
+    /** Favicon trang khách: ảnh đại diện (hoặc chữ viết tắt trên màu nhấn). ?v= đổi khi ảnh/màu/tên đổi. */
+    public function iconUrl(int $size = 64): string
+    {
+        return route('public.icon', ['slug' => $this->slug, 'size' => $size, 'v' => app(\App\Services\StudioIcon::class)->fingerprint($this)]);
     }
 
     public function consultations()

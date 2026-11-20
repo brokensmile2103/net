@@ -48,6 +48,23 @@ class Order extends Model
                 $order->status_changed_at = now();
             }
         });
+
+        // Email báo tiến độ cho khách (nếu studio bật): xếp hàng chờ khi đơn đổi giai đoạn — gửi sau vài phút,
+        // kịp huỷ nếu freelancer kéo nhầm thẻ rồi Hoàn tác. Lỗi ở đây không bao giờ làm hỏng thao tác với đơn.
+        static::saved(function (Order $order) {
+            if ($order->wasChanged('status') || $order->wasRecentlyCreated) {
+                try {
+                    app(\App\Services\Mail\StageMail::class)->queue($order);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+        });
+    }
+
+    public function emailLogs()
+    {
+        return $this->hasMany(EmailLog::class);
     }
 
     // ---- Quan hệ -----------------------------------------------------------

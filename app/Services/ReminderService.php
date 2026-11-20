@@ -2,14 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\EmailLog;
 use App\Models\Order;
 use App\Models\Studio;
 use App\Notifications\ClientReminder;
+use App\Services\Mail\StudioMailer;
 use App\Support\EmailCheck;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
 
 /**
  * Tự động nhắc khách qua email — không cần cron.
@@ -59,7 +60,12 @@ class ReminderService
             $sent = 0;
             $studios = Studio::query()->where('is_active', true)->whereNotNull('reminder_prefs')->get()
                 ->filter(fn (Studio $s) => $s->reminderPrefs()['enabled']);
+            $mailer = app(StudioMailer::class);
             foreach ($studios as $studio) {
+                // Studio hết hạn mức / bị tạm dừng email → để lượt sau (không ghi nhật ký "bỏ qua" hàng loạt).
+                if ($mailer->blocker($studio)) {
+                    continue;
+                }
                 foreach ($this->due($studio) as [$order, $kind]) {
                     if ($sent >= $limit) {
                         return $sent;
@@ -135,15 +141,17 @@ class ReminderService
     public function send(Order $order, string $kind): bool
     {
         $email = trim((string) $order->client?->email);
-        try {
-            Notification::route('mail', [$email => $order->client->name])->notifyNow(new ClientReminder($order, $kind));
-        } catch (\Throwable $e) {
-            Log::warning('Nét: không gửi được email nhắc '.$order->code.' — '.$e->getMessage());
+        // Qua StudioMailer: hạn mức / nhật ký / chế độ thử riêng của studio.
+        $log = app(StudioMailer::class)->deliver($order->studio, $order, 'reminder:'.$kind, $email, $order->client->name, new ClientReminder($order, $kind));
+        if (! in_array($log->status, EmailLog::COUNTED, true)) {
+            if ($log->status === 'failed') {
+                Log::warning('Nét: không gửi được email nhắc '.$order->code.' — '.$log->note);
+            }
 
             return false;
         }
         $order->reminders()->create(['kind' => $kind, 'email' => $email, 'sent_at' => now()]);
-        $this->orders->log($order, 'note', 'Nét đã tự gửi email nhắc khách ('.mb_strtolower(config('net.reminders.kinds.'.$kind.'.label')).') tới '.$email.'.', 'system', false);
+        $this->orders->log($order, 'note', ($log->status === 'sandbox' ? '[Chế độ thử] ' : '').'Nét đã tự gửi email nhắc khách ('.mb_strtolower(config('net.reminders.kinds.'.$kind.'.label')).') tới '.$email.'.', 'system', false);
 
         return true;
     }

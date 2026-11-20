@@ -15,11 +15,11 @@ class ClientContactTest extends NetTestCase
 {
     private function order(Studio $studio, array $contact, array $extra = [])
     {
-        return $this->post(route('public.order.store', $studio->slug), $this->guard('order-'.$studio->id) + [
+        return $this->post(route('public.order.store', $studio->slug), array_merge($this->guard('order-'.$studio->id), [
             'title' => 'Logo quán cà phê',
             'brief' => 'Quán nhỏ, phong cách tối giản.',
             'name' => 'Minh Anh',
-        ] + $contact + $extra);
+        ], $contact, $extra));
     }
 
     // ================= Chuẩn hoá Facebook =================

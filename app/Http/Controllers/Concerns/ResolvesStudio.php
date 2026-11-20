@@ -15,6 +15,12 @@ trait ResolvesStudio
     protected function studio(Request $request): Studio
     {
         $user = $request->user();
+        // Luôn đọc studio mới nhất (mỗi request 1 lần): đối tượng User có thể được giữ lại giữa các request
+        // (queue worker, Octane, test) → quan hệ đã nạp từ trước sẽ cũ (VD vừa lưu key AI / đổi màu nhấn).
+        if ($user && ! $request->attributes->get('net.studio_fresh')) {
+            $user->unsetRelation('studio');
+            $request->attributes->set('net.studio_fresh', true);
+        }
         // Super Admin của bản cài cũ chưa có studio riêng → tạo tự động.
         $studio = $user?->studio ?? ($user ? app(\App\Services\StudioProvisioner::class)->ensureFor($user) : null);
 

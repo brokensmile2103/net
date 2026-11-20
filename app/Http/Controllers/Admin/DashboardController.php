@@ -61,7 +61,29 @@ class DashboardController extends Controller
                 'images' => $studio->images()->count(),
                 'last_activity' => $last ? Carbon::parse($last) : null,
             ],
+            // Email: chỉ số lượng — không hiện nội dung / người nhận.
+            'email' => [
+                'today' => app(\App\Services\Mail\StudioMailer::class)->usedToday($studio),
+                'month' => $studio->emailLogs()->whereIn('status', \App\Models\EmailLog::COUNTED)->where('sent_at', '>=', now()->startOfMonth())->count(),
+                'failed_30d' => $studio->emailLogs()->where('status', 'failed')->where('created_at', '>=', now()->subDays(30))->count(),
+                'limit' => app(\App\Services\Mail\PlatformMail::class)->studioLimit($studio),
+                'default_limit' => app(\App\Services\Mail\PlatformMail::class)->settings()['studio_daily'],
+                'prefs' => $studio->emailPrefs(),
+            ],
         ]);
+    }
+
+    /** Hạn mức email riêng / tạm dừng email của 1 studio (VD bị báo spam). */
+    public function email(Request $request, int $studio): RedirectResponse
+    {
+        $studio = Studio::findOrFail($studio);
+        $data = $request->validate(['limit' => 'nullable|integer|min:0|max:100000', 'blocked' => 'nullable|boolean']);
+        $studio->mergeEmailPrefs([
+            'limit' => isset($data['limit']) && $data['limit'] !== '' ? (int) $data['limit'] : null,
+            'blocked' => (bool) ($data['blocked'] ?? false),
+        ]);
+
+        return back()->with('status', 'Đã lưu cài đặt email của "'.$studio->name.'".');
     }
 
     /** Chạy ngay các bản cập nhật database còn thiếu (dùng khi tự cập nhật thất bại hoặc vừa sửa lỗi DB). */

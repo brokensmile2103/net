@@ -24,5 +24,7 @@ class RunDueReminders
             return;
         }
         app(ReminderService::class)->runIfDue();
+        // Hàng chờ email gửi khách (báo tiến độ theo giai đoạn) — chỉ 1 truy vấn nhỏ khi hàng chờ trống.
+        app(\App\Services\Mail\StageMail::class)->runIfDue();
     }
 }

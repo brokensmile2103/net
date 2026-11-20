@@ -91,3 +91,10 @@ INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
 DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
+
+
+------------------------------------------------------------------------------
+Font bổ sung cho ảnh bảng giá (PriceListImage) — đều theo SIL Open Font License 1.1 (nội dung giấy phép ở trên):
+  Fraunces (Undercase Type), Patrick Hand (Patrick Wagesreiter), Unbounded (NaN),
+  Archivo (Omnibus-Type), Space Grotesk (Florian Karsten), JetBrains Mono (JetBrains).
+Các file .ttf đã được cắt gọn (Latin, Latin mở rộng, tiếng Việt) từ bản phát hành gốc trên Google Fonts.

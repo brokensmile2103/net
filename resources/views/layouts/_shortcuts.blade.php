@@ -15,6 +15,9 @@
         ['label' => 'Khách hàng', 'icon' => 'fa-address-book', 'url' => route('clients.index'), 'keys' => 'G K'],
         ['label' => 'Dịch vụ & bảng giá', 'icon' => 'fa-tags', 'url' => route('services.index'), 'keys' => 'G V'],
         ['label' => 'Báo cáo', 'icon' => 'fa-chart-simple', 'url' => route('reports.index'), 'keys' => 'G R'],
+        ['label' => 'Thống kê trang đặt đơn', 'icon' => 'fa-chart-line', 'url' => route('analytics.index'), 'keys' => 'G T'],
+        ['label' => 'Email gửi khách', 'icon' => 'fa-paper-plane', 'url' => route('settings.index').'#email-khach', 'keys' => ''],
+        ['label' => 'Google Analytics', 'icon' => 'fa-chart-pie', 'url' => route('settings.index').'#trang-dat-don-ga', 'keys' => ''],
         ['label' => 'Cài đặt studio', 'icon' => 'fa-gear', 'url' => route('settings.index'), 'keys' => 'G C'],
         ['label' => 'Hẹn gọi tư vấn', 'icon' => 'fa-calendar-check', 'url' => route('consultations.index'), 'keys' => ''],
         ['label' => 'Nhắc khách tự động (email)', 'icon' => 'fa-envelope', 'url' => route('settings.index').'#nhac-khach', 'keys' => ''],
@@ -24,7 +27,7 @@
       ->map(fn ($c) => $c + ['search' => $plain($c['label'])])->values();
     $groups = [
         'Chung' => [['Alt', 'N', 'Tạo đơn mới'], ['Ctrl', 'K', 'Bảng lệnh: tìm đơn, khách, mở trang'], ['/', null, 'Tìm trên trang đang xem'], ['?', null, 'Mở hộp phím tắt này'], ['E', null, 'Sửa đơn (trong trang đơn)']],
-        'Chuyển trang (bấm G rồi…)' => [['G', 'H', 'Hôm nay'], ['G', 'B', 'Bảng việc'], ['G', 'D', 'Tất cả đơn'], ['G', 'L', 'Lịch hạn chót'], ['G', 'K', 'Khách hàng'], ['G', 'V', 'Dịch vụ'], ['G', 'R', 'Báo cáo'], ['G', 'C', 'Cài đặt']],
+        'Chuyển trang (bấm G rồi…)' => [['G', 'H', 'Hôm nay'], ['G', 'B', 'Bảng việc'], ['G', 'D', 'Tất cả đơn'], ['G', 'L', 'Lịch hạn chót'], ['G', 'K', 'Khách hàng'], ['G', 'V', 'Dịch vụ'], ['G', 'R', 'Báo cáo'], ['G', 'T', 'Thống kê trang đặt đơn'], ['G', 'C', 'Cài đặt']],
         'Bảng việc' => [['←↑↓→', null, 'Đi giữa các thẻ'], ['Enter', null, 'Mở đơn'], ['Shift', '← →', 'Chuyển thẻ sang cột bên cạnh'], ['X', null, 'Chọn / bỏ chọn thẻ (chọn nhiều để chuyển một lượt)'], ['1 2 3', null, 'Xem: Thẻ · Gọn · Dòng'], ['Esc', null, 'Bỏ chọn / huỷ kéo']],
     ];
 @endphp

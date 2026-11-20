@@ -3,7 +3,7 @@
 @section('page-title', 'Cài đặt')
 @section('content')
 @php
-    $sections = ['studio' => 'Hồ sơ studio', 'nhan-don' => 'Nhận đơn & quy định', 'thanh-toan' => 'Nhận chuyển khoản', 'nhac-khach' => 'Nhắc khách tự động', 'tu-van' => 'Hẹn gọi tư vấn', 'trang-dat-don' => 'Trang đặt đơn', 'tro-ly-ai' => 'Trợ lý AI', 'du-lieu' => 'Dữ liệu'];
+    $sections = ['studio' => 'Hồ sơ studio', 'nhan-don' => 'Nhận đơn & quy định', 'thanh-toan' => 'Nhận chuyển khoản', 'email-khach' => 'Email gửi khách', 'nhac-khach' => 'Nhắc khách tự động', 'tu-van' => 'Hẹn gọi tư vấn', 'trang-dat-don' => 'Trang đặt đơn', 'trang-dat-don-ga' => 'Google Analytics', 'tro-ly-ai' => 'Trợ lý AI', 'du-lieu' => 'Dữ liệu'];
     $box = 'rounded-lg border border-[var(--line)] bg-white p-5 md:p-6 scroll-mt-20';
 @endphp
 <div class="px-4 py-5 md:px-8 md:py-7 max-w-5xl mx-auto md:grid md:grid-cols-[11rem_1fr] md:gap-8">
@@ -114,6 +114,7 @@
             @endif
         </section>
 
+        @include('settings._email')
         @include('settings._reminders')
         @include('settings._consult')
 
@@ -278,6 +279,8 @@
                 @endif
             </div>
         </section>
+
+        @include('settings._analytics')
 
         {{-- Trợ lý AI --}}
         <section id="tro-ly-ai" class="{{ $box }}" aria-labelledby="h-ai">

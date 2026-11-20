@@ -36,5 +36,22 @@
             </div>
         </section>
     </div>
+    <section class="mt-6 rounded-lg border border-[var(--line)] bg-white p-5" aria-labelledby="h-st-mail">
+        <h2 id="h-st-mail" class="text-sm font-semibold mb-3">Email gửi khách</h2>
+        <dl class="grid grid-cols-3 gap-4">
+            <div><dt class="text-xs text-[var(--muted)]">Hôm nay</dt><dd class="font-display text-xl font-bold tnum">{{ $email['today'] }} <span class="text-sm font-normal text-[var(--muted)]">/ {{ $email['limit'] }}</span></dd></div>
+            <div><dt class="text-xs text-[var(--muted)]">Tháng này</dt><dd class="font-display text-xl font-bold tnum">{{ $email['month'] }}</dd></div>
+            <div><dt class="text-xs text-[var(--muted)]">Lỗi 30 ngày</dt><dd class="font-display text-xl font-bold tnum {{ $email['failed_30d'] ? 'text-red-600' : '' }}">{{ $email['failed_30d'] }}</dd></div>
+        </dl>
+        <form method="POST" action="{{ route('admin.studios.email', $studio->id) }}" class="mt-4 flex flex-wrap items-end gap-4">
+            @csrf @method('PUT')
+            <div class="w-56"><x-input name="limit" type="number" min="0" label="Hạn mức riêng / ngày" :value="$email['prefs']['limit']" :placeholder="'Mặc định: '.$email['default_limit']" /></div>
+            <label class="flex items-center gap-2 text-sm pb-2.5">
+                <input type="hidden" name="blocked" value="0">
+                <input type="checkbox" name="blocked" value="1" @checked($email['prefs']['blocked']) class="w-4 h-4 rounded border-neutral-300">Tạm dừng mọi email của studio
+            </label>
+            <x-button size="sm" variant="ink" icon="fa-floppy-disk">Lưu</x-button>
+        </form>
+    </section>
     <p class="text-xs text-[var(--muted)] mt-6">Trang này chỉ hiện số lượng để hỗ trợ vận hành — nội dung đơn, brief, khách hàng và tiền của studio không hiển thị với quản trị viên.</p>
 @endsection

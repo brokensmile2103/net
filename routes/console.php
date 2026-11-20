@@ -18,3 +18,10 @@ Artisan::command('net:nhac-khach', function (ReminderService $reminders) {
 })->purpose('Gửi email nhắc khách (phương án chờ xem, báo giá chờ đồng ý, còn nợ)');
 
 Schedule::command('net:nhac-khach')->hourly()->withoutOverlapping();
+
+// Hàng chờ email gửi khách (báo tiến độ theo giai đoạn). Không có cron vẫn chạy kèm lượt truy cập web.
+Artisan::command('net:gui-email', function (\App\Services\Mail\StageMail $outbox) {
+    $this->info('Đã gửi '.$outbox->processDue(100).' email trong hàng chờ.');
+})->purpose('Gửi các email báo tiến độ đang chờ trong hàng chờ');
+
+Schedule::command('net:gui-email')->everyMinute()->withoutOverlapping();

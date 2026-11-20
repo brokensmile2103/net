@@ -265,7 +265,7 @@ if (! function_exists('client_message')) {
                 .($order->depositAmount() > 0 ? ', cọc '.$order->deposit_percent.'% là '.money($order->depositAmount()).'đ' : '')
                 .'. Bạn xem chi tiết và bấm "Đồng ý báo giá" ở link bên dưới giúp mình nhé.',
             'in_progress' => 'Mình đang bắt tay vào thiết kế "'.$order->title.'"'.($order->due_on ? ', dự kiến gửi bạn trước '.$order->due_on->format('d/m') : '').'.',
-            'review' => 'Mình đã gửi phương án '.($order->latestRound()?->label() ?? '').' cho "'.$order->title.'". Bạn xem, chọn phương án ưng ý và góp ý trực tiếp lên hình ở link bên dưới nhé.',
+            'review' => 'Mình đã gửi phương án '.(($r = $order->latestRound()?->label()) ? $r.' ' : '').'cho "'.$order->title.'". Bạn xem, chọn phương án ưng ý và góp ý trực tiếp lên hình ở link bên dưới nhé.',
             'revising' => 'Mình đã nhận góp ý và đang chỉnh sửa "'.$order->title.'". Xong mình gửi bạn xem ngay.',
             'approved' => 'Cảm ơn bạn đã duyệt "'.$order->title.'"!'.($order->balance() > 0 ? ' '.((float) $order->paid_amount > 0 ? 'Phần còn lại' : 'Chi phí').' là '.money($order->balance()).'đ, thanh toán xong mình gửi file gốc ngay.' : ' Mình đang chuẩn bị file bàn giao.'),
             'delivered' => 'File bàn giao "'.$order->title.'" đã sẵn sàng trong link bên dưới. Cảm ơn bạn đã tin tưởng!',

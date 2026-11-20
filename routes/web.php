@@ -17,8 +17,10 @@ use App\Http\Controllers\Public\ConsultationController as PublicConsultationCont
 use App\Http\Controllers\Public\OrderFormController;
 use App\Http\Controllers\Public\TrackingController;
 use App\Http\Controllers\Studio\AiController;
+use App\Http\Controllers\Studio\AnalyticsController;
 use App\Http\Controllers\Studio\ClientController;
 use App\Http\Controllers\Studio\ConsultationController;
+use App\Http\Controllers\Studio\EmailController;
 use App\Http\Controllers\Studio\OrderController;
 use App\Http\Controllers\Studio\QuickSearchController;
 use App\Http\Controllers\Studio\OrderMoneyController;
@@ -75,6 +77,7 @@ Route::get('/robots.txt', [PageController::class, 'robots'])->name('robots');
 Route::name('public.')->group(function () {
     Route::get('/dat/{slug}', [OrderFormController::class, 'show'])->where('slug', '[a-z0-9-]{3,40}')->name('order');
     Route::get('/dat/{slug}/anh-chia-se.jpg', [OrderFormController::class, 'shareImage'])->where('slug', '[a-z0-9-]{3,40}')->name('share-image');
+    Route::get('/dat/{slug}/icon-{size}.png', [OrderFormController::class, 'icon'])->where(['slug' => '[a-z0-9-]{3,40}', 'size' => '[0-9]{2,3}'])->name('icon');
     Route::post('/dat/{slug}/hen-tu-van', [PublicConsultationController::class, 'store'])->where('slug', '[a-z0-9-]{3,40}')->middleware('throttle:order-form')->name('consult.store');
     Route::prefix('hen/{token}')->where(['token' => '[A-Za-z0-9]{40}'])->middleware('throttle:track-view')->group(function () {
         Route::get('/', [PublicConsultationController::class, 'show'])->name('consult.show');
@@ -101,6 +104,9 @@ Route::middleware(['auth', 'role:platform_admin'])->prefix('sieu-quan-tri')->nam
     Route::post('/cap-nhat-database', [DashboardController::class, 'updateSchema'])->name('schema.update');
     Route::get('/cai-dat', [AdminSettingsController::class, 'edit'])->name('settings.edit');
     Route::put('/cai-dat', [AdminSettingsController::class, 'update'])->name('settings.update');
+    Route::put('/cai-dat/email', [AdminSettingsController::class, 'updateMail'])->middleware('throttle:10,1')->name('settings.mail');
+    Route::post('/cai-dat/email/gui-thu', [AdminSettingsController::class, 'testMail'])->middleware('throttle:6,1')->name('settings.mail.test');
+    Route::put('/studio/{studio}/email', [DashboardController::class, 'email'])->whereNumber('studio')->name('studios.email');
     Route::get('/trang/{slug}', [AdminPageController::class, 'edit'])->name('pages.edit');
     Route::put('/trang/{slug}', [AdminPageController::class, 'update'])->name('pages.update');
     Route::get('/nguoi-dung', [AdminUserController::class, 'index'])->name('users.index');
@@ -148,6 +154,9 @@ Route::middleware(['auth', 'role:owner'])->group(function () {
     Route::post('/gop-y/{feedback}/xong', [OrderWorkController::class, 'resolve'])->whereNumber('feedback')->name('feedback.resolve');
     Route::post('/don/{order}/ban-giao', [OrderWorkController::class, 'deliver'])->whereNumber('order')->name('orders.deliver');
     Route::patch('/don/{order}/nhac-khach', [OrderWorkController::class, 'reminders'])->whereNumber('order')->name('orders.reminders');
+    Route::post('/don/{order}/email', [EmailController::class, 'sendForOrder'])->whereNumber('order')->middleware('throttle:20,1')->name('orders.email');
+    Route::get('/don/{order}/email/xem-truoc', [EmailController::class, 'previewForOrder'])->whereNumber('order')->name('orders.email.preview');
+    Route::post('/email-cho/{log}', [EmailController::class, 'pending'])->whereNumber('log')->name('emails.pending');
 
     // Vòng & phương án
     Route::post('/don/{order}/vong', [RoundController::class, 'store'])->whereNumber('order')->name('rounds.store');
@@ -173,6 +182,7 @@ Route::middleware(['auth', 'role:owner'])->group(function () {
 
     // Dịch vụ & bảng giá
     Route::get('/dich-vu', [ServiceController::class, 'index'])->name('services.index');
+    Route::get('/dich-vu/anh-bang-gia.png', [ServiceController::class, 'priceImage'])->middleware('throttle:20,1')->name('services.price-image');
     Route::post('/dich-vu', [ServiceController::class, 'store'])->name('services.store');
     Route::put('/dich-vu/{service}', [ServiceController::class, 'update'])->whereNumber('service')->name('services.update');
     Route::delete('/dich-vu/{service}', [ServiceController::class, 'destroy'])->whereNumber('service')->name('services.destroy');
@@ -182,6 +192,9 @@ Route::middleware(['auth', 'role:owner'])->group(function () {
     Route::get('/bao-cao', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/bao-cao/xuat-csv', [ReportController::class, 'export'])->name('reports.export');
 
+    // Thống kê trang đặt đơn
+    Route::get('/thong-ke', [AnalyticsController::class, 'index'])->name('analytics.index');
+
     // Cài đặt studio
     Route::get('/cai-dat', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/cai-dat/studio', [SettingsController::class, 'updateProfile'])->name('settings.profile');
@@ -190,6 +203,11 @@ Route::middleware(['auth', 'role:owner'])->group(function () {
     Route::put('/cai-dat/thanh-toan', [SettingsController::class, 'updatePayment'])->name('settings.payment');
     Route::put('/cai-dat/tu-van', [SettingsController::class, 'updateConsult'])->name('settings.consult');
     Route::put('/cai-dat/nhac-khach', [SettingsController::class, 'updateReminders'])->name('settings.reminders');
+    Route::put('/cai-dat/email', [EmailController::class, 'update'])->name('settings.email');
+    Route::get('/cai-dat/email/xem-truoc', [EmailController::class, 'preview'])->name('settings.email.preview');
+    Route::post('/cai-dat/email/gui-thu', [EmailController::class, 'test'])->middleware('throttle:6,1')->name('settings.email.test');
+    Route::get('/cai-dat/email/nhat-ky', [EmailController::class, 'log'])->name('settings.email.log');
+    Route::put('/cai-dat/google-analytics', [SettingsController::class, 'updateAnalytics'])->name('settings.analytics');
     Route::post('/cai-dat/nhac-khach/gui-thu', [SettingsController::class, 'testReminder'])->middleware('throttle:6,1')->name('settings.reminders.test');
     Route::put('/cai-dat/giao-dien', [PageDesignController::class, 'update'])->name('settings.appearance');
     Route::post('/cai-dat/anh-bia-trang', [PageDesignController::class, 'cover'])->name('settings.page-cover');

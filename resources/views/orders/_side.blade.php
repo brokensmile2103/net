@@ -239,6 +239,60 @@
     </div>
 </section>
 
+{{-- Email báo tiến độ cho khách (gửi tay / đang chờ / đã gửi) --}}
+@php
+    $ep = $studio->emailPrefs();
+    $stageKey = array_key_exists($order->status, config('net.stage_emails.stages')) ? $order->status : null;
+    $orderLogs = $order->emailLogs()->latest('id')->limit(4)->get();
+    $pendingLog = $orderLogs->firstWhere('status', 'pending');
+    $clientEmail = $order->client?->email;
+@endphp
+<section id="email-khach" class="scroll-mt-20 rounded-lg border border-[var(--line)] bg-white p-4" aria-labelledby="h-email-{{ $order->id }}" x-data="{ note: '' }">
+    <p id="h-email-{{ $order->id }}" class="text-sm font-semibold mb-1.5"><i class="fa-regular fa-paper-plane mr-1.5 text-[var(--muted)]" aria-hidden="true"></i>Email cho khách</p>
+    @if(! $clientEmail)
+        <p class="text-xs text-[var(--muted)]">Khách chưa có email. <a href="{{ route('clients.show', $order->client_id) }}" class="font-semibold text-[var(--accent-ink)] hover:underline">Thêm email</a> để gửi báo tiến độ đẹp theo mẫu trang của bạn.</p>
+    @else
+        <p class="text-xs text-[var(--muted)]">
+            @if($ep['stages_on'] && $stageKey && $ep['stages'][$stageKey]['on'])
+                Tự gửi khi đơn sang giai đoạn mới (đang bật).
+            @else
+                Tự gửi theo giai đoạn: {{ $ep['stages_on'] ? 'tắt cho giai đoạn này' : 'đang tắt' }} — <a href="{{ route('settings.index') }}#email-khach" class="font-semibold text-[var(--accent-ink)] hover:underline">Cài đặt</a>.
+            @endif
+            @if($ep['sandbox'])<span class="block text-sky-700 mt-0.5">Chế độ thử: email sẽ về {{ $studio->email ?: 'email studio' }}.</span>@endif
+        </p>
+
+        @if($pendingLog)
+            <div class="mt-2 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900">
+                <p><i class="fa-regular fa-clock mr-1" aria-hidden="true"></i>{{ $pendingLog->kindLabel() }} — gửi lúc {{ $pendingLog->send_at?->format('H:i') }}</p>
+                <div class="flex gap-3 mt-1">
+                    <form method="POST" action="{{ route('emails.pending', $pendingLog->id) }}">@csrf<input type="hidden" name="action" value="send"><button class="font-semibold hover:underline">Gửi ngay</button></form>
+                    <form method="POST" action="{{ route('emails.pending', $pendingLog->id) }}">@csrf<input type="hidden" name="action" value="cancel"><button class="hover:text-red-600">Huỷ</button></form>
+                </div>
+            </div>
+        @endif
+
+        @if($stageKey)
+            <form method="POST" action="{{ route('orders.email', $order->id) }}" class="mt-2 space-y-2" onsubmit="return confirm('Gửi email “{{ config('net.stage_emails.stages.'.$stageKey.'.label') }}” tới {{ $clientEmail }}?')">
+                @csrf
+                <label class="sr-only" for="email-note-{{ $order->id }}">Lời nhắn kèm</label>
+                <textarea id="email-note-{{ $order->id }}" name="note" x-model="note" rows="2" maxlength="1000" placeholder="Lời nhắn kèm (không bắt buộc)" class="w-full rounded-md border border-[var(--line-strong)] px-2.5 py-1.5 text-sm"></textarea>
+                <div class="flex flex-wrap items-center gap-3">
+                    <x-button size="sm" variant="outline" icon="fa-paper-plane">Gửi “{{ config('net.stage_emails.stages.'.$stageKey.'.label') }}”</x-button>
+                    <a :href="@js(route('orders.email.preview', $order->id)) + (note ? '?note=' + encodeURIComponent(note) : '')" href="{{ route('orders.email.preview', $order->id) }}" target="_blank" rel="noopener" class="text-xs font-semibold text-[var(--accent-ink)] hover:underline">Xem trước</a>
+                </div>
+            </form>
+        @endif
+    @endif
+    @if($orderLogs->isNotEmpty())
+        <ul class="mt-2 pt-2 border-t border-[var(--line)] space-y-1 text-xs text-[var(--muted)]">
+            @foreach($orderLogs as $l)
+                @php [$lab] = $l->statusLabel(); @endphp
+                <li @if($l->note) title="{{ $l->note }}" @endif>{{ ($l->sent_at ?? $l->created_at)->format('d/m H:i') }} · {{ $l->kindLabel() }} · <span class="{{ in_array($l->status, ['failed'], true) ? 'text-red-600' : '' }}">{{ $lab }}</span></li>
+            @endforeach
+        </ul>
+    @endif
+</section>
+
 {{-- Nhắc khách qua email --}}
 @php
     $rp = $studio->reminderPrefs();

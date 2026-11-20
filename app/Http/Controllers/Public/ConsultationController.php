@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\Studio;
 use App\Notifications\ConsultationBooked;
+use App\Services\Analytics\PageAnalytics;
 use App\Services\ClientDirectory;
 use App\Services\ConsultSlots;
 use App\Services\FormGuard;
@@ -70,7 +71,7 @@ class ConsultationController extends Controller
             return $back(['slot' => 'Bạn đã có lịch hẹn '.$existing->whenLabel().'. Huỷ lịch đó (link trong email / trang lịch hẹn) rồi đặt lại giúp mình nhé.']);
         }
 
-        $consultation = DB::transaction(function () use ($studio, $slots, $data, $prefs, $directory) {
+        $consultation = DB::transaction(function () use ($request, $studio, $slots, $data, $prefs, $directory) {
             // Khoá theo studio để 2 người không cùng giữ 1 giờ.
             Studio::query()->whereKey($studio->id)->lockForUpdate()->first();
             if (! $slots->isAvailable($studio, $data['date'], $data['time'])) {
@@ -89,6 +90,7 @@ class ConsultationController extends Controller
             ]);
             $c->studio_id = $studio->id;
             $c->client_id = $client->id;
+            $c->ref_source = PageAnalytics::sessionSource($request, $studio) ?? 'direct';
             $c->save();
 
             return $c;
@@ -100,7 +102,7 @@ class ConsultationController extends Controller
 
         $this->notify($consultation);
 
-        return redirect()->route('public.consult.show', $consultation->token)->with('booked', true);
+        return redirect()->route('public.consult.show', $consultation->token)->with('booked', true)->with('ga_lead', ['form' => 'consult']);
     }
 
     public function show(string $token): Response
@@ -147,7 +149,8 @@ class ConsultationController extends Controller
         }
         try {
             if (EmailCheck::plausible($c->email)) {
-                Notification::route('mail', [$c->email => $c->name])->notifyNow(new ConsultationBooked($c, 'client'));
+                // Gửi khách: qua StudioMailer (hạn mức / nhật ký / chế độ thử riêng của studio).
+                app(\App\Services\Mail\StudioMailer::class)->deliver($c->studio, null, 'consult', (string) $c->email, $c->name, new ConsultationBooked($c, 'client'));
             }
             if (EmailCheck::plausible($c->studio->email, false)) {
                 Notification::route('mail', $c->studio->email)->notifyNow(new ConsultationBooked($c, 'studio'));

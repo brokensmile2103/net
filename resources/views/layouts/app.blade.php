@@ -9,6 +9,7 @@
         ['route' => 'clients.index', 'active' => 'clients.*', 'icon' => 'fa-address-book', 'label' => 'Khách hàng'],
         ['route' => 'services.index', 'active' => 'services.*', 'icon' => 'fa-tags', 'label' => 'Dịch vụ & bảng giá'],
         ['route' => 'reports.index', 'active' => 'reports.*', 'icon' => 'fa-chart-simple', 'label' => 'Báo cáo'],
+        ['route' => 'analytics.index', 'active' => 'analytics.*', 'icon' => 'fa-chart-line', 'label' => 'Thống kê trang'],
     ];
     // Hẹn tư vấn: chỉ hiện khi studio bật hoặc đã có lịch hẹn (thêm ở cuối để không đổi vị trí thanh dưới trên điện thoại).
     if ($studio && ($studio->consultEnabled() || $studio->consultations()->exists())) {
@@ -37,7 +38,7 @@
     $shortcutRoutes = auth()->user() && $studio ? [
         'new' => route('orders.create'), 'today' => route('today'), 'board' => route('orders.board'), 'orders' => route('orders.index'),
         'calendar' => route('orders.calendar'), 'clients' => route('clients.index'), 'services' => route('services.index'),
-        'reports' => route('reports.index'), 'settings' => route('settings.index'),
+        'reports' => route('reports.index'), 'stats' => route('analytics.index'), 'settings' => route('settings.index'),
     ] : [];
 @endphp
 <body class="h-full bg-[var(--paper)] text-[var(--ink)] antialiased" @if($shortcutRoutes) data-shortcuts='@json($shortcutRoutes)' @endif>

@@ -30,7 +30,7 @@ class PlatformAdminTest extends NetTestCase
         $admin = $this->admin();
         $this->assertSame(0, Studio::count());
 
-        $this->post('/login', ['phone' => $admin->phone, 'password' => 'password123'])->assertRedirect(route('today'));
+        $this->post('/login', $this->guard('login') + ['phone' => $admin->phone, 'password' => 'password123'])->assertRedirect(route('today'));
 
         $studio = Studio::where('owner_id', $admin->id)->first();
         $this->assertNotNull($studio);

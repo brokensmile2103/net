@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Studio;
 use App\Http\Controllers\Concerns\ResolvesStudio;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
+use App\Services\PriceListImage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 /** Dịch vụ & bảng giá — hiện trên trang đặt đơn công khai, dùng làm dòng báo giá mặc định khi tạo đơn. */
@@ -18,10 +20,43 @@ class ServiceController extends Controller
     {
         $studio = $this->studio($request);
 
+        $services = $studio->services()->withCount('orders')->orderBy('sort_order')->orderBy('id')->get();
+
         return view('services.index', [
             'studio' => $studio,
-            'services' => $studio->services()->withCount('orders')->orderBy('sort_order')->orderBy('id')->get(),
+            'services' => $services,
+            // Nút "Tải ảnh về / Sao chép": chỉ hiện khi có dịch vụ công khai để vẽ và máy chủ vẽ được (GD + font).
+            'canPriceImage' => $services->contains('is_public', true) && app(PriceListImage::class)->available(),
+            'priceImageTheme' => config('net.page_themes.'.$studio->pageTheme().'.label'),
         ]);
+    }
+
+    /**
+     * Ảnh bảng giá (PNG) vẽ từ các dịch vụ công khai, theo mẫu giao diện + màu nhấn của studio.
+     * ?tai=1 → tải về (Content-Disposition: attachment), không có → hiện/sao chép trực tiếp.
+     */
+    public function priceImage(Request $request, PriceListImage $images): Response
+    {
+        $studio = $this->studio($request);
+
+        if (! $images->available()) {
+            return response('Máy chủ chưa vẽ được ảnh (thiếu GD/FreeType hoặc font).', 503, ['Content-Type' => 'text/plain; charset=utf-8']);
+        }
+
+        $png = $images->render($studio);
+        if ($png === null) {
+            return response('Chưa có dịch vụ công khai nào để vẽ bảng giá.', 404, ['Content-Type' => 'text/plain; charset=utf-8']);
+        }
+
+        $headers = [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'private, no-store, max-age=0',
+        ];
+        if ($request->boolean('tai')) {
+            $headers['Content-Disposition'] = 'attachment; filename="bang-gia-'.$studio->slug.'.png"';
+        }
+
+        return response($png, 200, $headers);
     }
 
     public function store(Request $request): RedirectResponse

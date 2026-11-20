@@ -44,9 +44,12 @@
     <meta name="twitter:image:alt" content="{{ $shareImageAlt }}">
     <meta name="theme-color" content="{{ $studio->accentHex() }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    {{-- Favicon = ảnh đại diện của studio (chưa có ảnh: chữ viết tắt trên màu nhấn). --}}
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ $studio->iconUrl(32) }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ $studio->iconUrl(192) }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ $studio->iconUrl(180) }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('public._analytics')
 </head>
 <body class="pf min-h-full antialiased">
     @if($theme === 'artboard')

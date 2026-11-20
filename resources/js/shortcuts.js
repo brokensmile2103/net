@@ -12,7 +12,7 @@
  */
 export const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 
-const GO = { h: 'today', b: 'board', d: 'orders', l: 'calendar', k: 'clients', v: 'services', r: 'reports', c: 'settings' };
+const GO = { h: 'today', b: 'board', d: 'orders', l: 'calendar', k: 'clients', v: 'services', r: 'reports', t: 'stats', c: 'settings' };
 
 const isTyping = (el) => el instanceof Element && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
 

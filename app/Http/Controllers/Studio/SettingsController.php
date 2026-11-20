@@ -200,6 +200,30 @@ class SettingsController extends Controller
         return $back->with('status', 'Đã gửi email thử tới '.$studio->email.'.');
     }
 
+    /**
+     * Google Analytics riêng: chỉ lưu mã đo lường G-XXXXXXX. Dán cả đoạn mã gtag của Google cũng được — Nét tự lấy mã ra
+     * và tự sinh script (không bao giờ in nguyên văn đoạn mã người dùng dán vào trang khách).
+     */
+    public function updateAnalytics(Request $request): RedirectResponse
+    {
+        $studio = $this->studio($request);
+        $back = redirect()->to(route('settings.index').'#trang-dat-don-ga');
+        $raw = strtoupper(trim((string) $request->input('ga_measurement_id', '')));
+        if ($raw === '' || $request->boolean('remove')) {
+            $studio->forceFill(['ga_measurement_id' => null])->save();
+
+            return $back->with('status', 'Đã gỡ Google Analytics khỏi trang đặt đơn.');
+        }
+        if (mb_strlen($raw) > 5000 || ! preg_match('/\bG-[A-Z0-9]{4,15}\b/', $raw, $m)) {
+            $hint = preg_match('/\bUA-\d+/', $raw) ? ' Mã UA-… là Universal Analytics cũ (Google đã ngừng) — hãy tạo luồng dữ liệu GA4 để có mã G-….' : '';
+
+            return $back->withInput()->withErrors(['ga_measurement_id' => 'Không thấy mã đo lường dạng G-XXXXXXXXXX.'.$hint]);
+        }
+        $studio->forceFill(['ga_measurement_id' => $m[0]])->save();
+
+        return $back->with('status', 'Đã gắn Google Analytics '.$m[0].' vào trang đặt đơn.');
+    }
+
     public function updatePayment(Request $request): RedirectResponse
     {
         $studio = $this->studio($request);

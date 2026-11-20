@@ -215,7 +215,7 @@ class GoogleAndSimpleFlowTest extends NetTestCase
 
         try {
             $this->assertFalse($updater->upToDate());
-            $this->assertSame('2026_10_23_000009_add_briefs_reminders_consultations', $updater->latestMigration());
+            $this->assertSame('2026_11_20_000010_add_analytics_and_studio_email', $updater->latestMigration());
 
             $this->actingAs($this->admin());
             $this->get(route('admin.dashboard'))->assertOk()->assertSee('Cập nhật database ngay');
